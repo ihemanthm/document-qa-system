@@ -25,4 +25,4 @@ def read_root():
 app.include_router(routes_upload.router, prefix="/upload", tags=["Upload"])
 app.include_router(routes_qa.router, prefix="/ask", tags=["QA"])
 app.include_router(routes_docs.router, prefix="/docs", tags=["Documents"])
-app.include_router(routes_users.router, prefix = "/users", tags=["Documents"])
+app.include_router(routes_users.router, prefix = "/users", tags=["Users"])

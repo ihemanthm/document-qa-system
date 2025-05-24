@@ -1,2 +1,5 @@
 .env
 venv/
+clean_env/
+.venv
+full_requirements.txt

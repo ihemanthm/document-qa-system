@@ -74,10 +74,20 @@ async def upload(file: UploadFile = File(...), user_id: str = Form(...), db: Ses
     db.commit()
     db.refresh(session)
     
-    return {
+    '''return {
         "file_id": doc.id,
         "filename": doc.filename,
         "s3_url": s3_url,
         "text_excerpt": text[:500],
         "session_id": session.id
-    }
+    }'''
+    return {
+            "session_id": session.id,
+            "created_at": session.started_at,
+            "document": {
+                "id": session.document.id,
+                "filename": session.document.filename,
+                "upload_time": session.document.upload_time,
+            }
+        }
+    
