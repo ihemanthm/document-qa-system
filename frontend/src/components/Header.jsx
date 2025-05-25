@@ -1,4 +1,4 @@
-import { Box, Button,  Typography, Link, Chip } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import Link from 'next/link';
 import Image from 'next/image';
 import logo from '../../public/assets/logo.png';
@@ -12,13 +12,15 @@ const Header = () => {
       <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center">
         <Link href="/" passHref>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box 
-              component="img"
-              src={logo}
-              alt="Logo"
-              sx={{ height: 32, width: 'auto' }}
-            />
+          <Box sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none', cursor: 'pointer'  }}>
+          <Image
+                src={logo}
+                alt="Logo"
+                width={32}
+                height={32}
+                style={{ width: 'auto', height: 'auto' }}
+                priority
+              />
           </Box>
         </Link>
         </div>
