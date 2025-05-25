@@ -16,9 +16,8 @@ const Header = () => {
           <Image
                 src={logo}
                 alt="Logo"
-                width={32}
-                height={32}
-                style={{ width: 'auto', height: 'auto' }}
+                width={100}
+                height={60}
                 priority
               />
           </Box>
