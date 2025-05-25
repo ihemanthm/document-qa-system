@@ -6,12 +6,23 @@ from app.db.session import SessionLocal
 from app.db.models.chat import ChatSession, ChatMessage  # updated models
 from app.services.qa_engine import query_pdf
 from datetime import datetime
+from typing import List
 
 router = APIRouter()
 
 class QuestionRequest(BaseModel):
-    session_id: str
+    session_id: int
     question: str
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    session_id: int
+    role: str
+    content: str
+    timestamp: datetime
+
+    class Config:
+        orm_mode = True
 
 def get_db():
     db = SessionLocal()
@@ -58,3 +69,22 @@ async def ask_question(request: QuestionRequest, db:Session = Depends(get_db)):
 
     return {"answer": answer}
 
+@router.get("/conversations/{session_id}", response_model=List[ChatMessageResponse])
+async def get_conversation(session_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieve all messages for a specific chat session, ordered by timestamp.
+    """
+    # Validate session exists
+    session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    
+    # Get messages ordered by timestamp
+    messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.session_id == session_id)
+        .order_by(ChatMessage.timestamp)
+        .all()
+    )
+    
+    return messages

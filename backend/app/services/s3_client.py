@@ -27,6 +27,8 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     try:
         contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
         s3_client.put_object(
             Bucket=BUCKET_NAME,
             Key=unique_filename,
@@ -35,6 +37,8 @@ async def upload_pdf(file: UploadFile = File(...)):
         )
     except (BotoCoreError, ClientError) as e:
         raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+    finally:
+        await file.seek(0)
 
     file_url = f"https://{BUCKET_NAME}.s3.{os.getenv('AWS_REGION')}.amazonaws.com/{unique_filename}"
     return {"filename": unique_filename, "url": file_url}

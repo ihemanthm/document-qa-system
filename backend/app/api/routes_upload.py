@@ -38,19 +38,21 @@ async def upload(file: UploadFile = File(...), user_id: str = Form(...), db: Ses
     with open(file_path, "wb") as f:
         content = await file.read()
         f.write(content)
-        
+
+    await file.seek(0)
+    
     upload_result = await upload_pdf(file)
     s3_url = upload_result.get("url")
     if not s3_url:
         raise HTTPException(status_code=500, detail="Failed to upload file to S3")
     
-    # Extract text (from in-memory bytes)
-    with open("temp.pdf", "wb") as temp_file:
-        temp_file.write(content)
+    # # Extract text (from in-memory bytes)
+    # with open("temp.pdf", "wb") as temp_file:
+    #     temp_file.write(content)
 
     # Extract text and build vector index
-    text = extract_text("temp.pdf")
-    os.remove("temp.pdf")
+    text = extract_text(file_path)
+    # os.remove("temp.pdf")
     
     build_index_from_pdf(text=text, doc_id=file_id)
     
@@ -74,20 +76,14 @@ async def upload(file: UploadFile = File(...), user_id: str = Form(...), db: Ses
     db.commit()
     db.refresh(session)
     
-    '''return {
-        "file_id": doc.id,
-        "filename": doc.filename,
-        "s3_url": s3_url,
-        "text_excerpt": text[:500],
-        "session_id": session.id
-    }'''
     return {
             "session_id": session.id,
             "created_at": session.started_at,
             "document": {
-                "id": session.document.id,
-                "filename": session.document.filename,
-                "upload_time": session.document.upload_time,
+                "id": doc.id,
+                "filename": doc.filename,
+                "upload_time": doc.upload_time,
+                "file_url": doc.source
             }
         }
     

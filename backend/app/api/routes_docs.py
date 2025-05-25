@@ -35,11 +35,11 @@ def get_user_documents(user_id: str, db: Session = Depends(get_db)):
     return documents
 
 @router.delete("/", status_code=204)
-def remove_user_document(user_id:str = Query(...),filename = Query(...), db:Session = Depends(get_db)):
+def remove_user_document(user_id:str = Query(...),id = Query(...), db:Session = Depends(get_db)):
     """
         Remove a single document
     """
-    document = db.query(Document).filter(Document.user_id == user_id, Document.filename == filename).first()
+    document = db.query(Document).filter(Document.user_id == user_id, Document.id == id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found for the given User ID and Filename")
     

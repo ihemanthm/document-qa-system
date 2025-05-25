@@ -67,6 +67,7 @@ def google_login(user_data: OAuthUserData, db: Session = Depends(get_db)):
                 "id": session.document.id,
                 "filename": session.document.filename,
                 "upload_time": session.document.upload_time,
+                "file_url": session.document.source
             }
         }
         for session in sessions if session.document
