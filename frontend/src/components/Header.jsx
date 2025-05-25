@@ -1,4 +1,6 @@
 import { Box, Button,  Typography, Link, Chip } from '@mui/material';
+import Link from 'next/link';
+import Image from 'next/image';
 import logo from '../../public/assets/logo.png';
 import { useAuth } from '@/context/AuthContext';
 
@@ -9,6 +11,7 @@ const Header = () => {
     <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
       <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center">
+        <Link href="/" passHref>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Box 
               component="img"
@@ -17,6 +20,7 @@ const Header = () => {
               sx={{ height: 32, width: 'auto' }}
             />
           </Box>
+        </Link>
         </div>
         
         {currentFile && (
