@@ -2,6 +2,7 @@ from fastapi import FastAPI  # type: ignore
 from app.api import routes_upload, routes_qa, routes_docs, routes_users
 from fastapi.middleware.cors import CORSMiddleware  # type: ignore
 from dotenv import load_dotenv  # type: ignore
+import uvicorn
 
 load_dotenv()
 
