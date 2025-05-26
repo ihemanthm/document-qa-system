@@ -286,7 +286,7 @@ export default function ChatWindow({
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      height: '100vh',
+      height: '100%',
       position: 'relative',
       overflow: 'hidden',
       pt: 8 // Add padding to account for the header (assuming header height is 64px)
@@ -297,7 +297,6 @@ export default function ChatWindow({
         overflow: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        pb: 2 // Add some bottom padding to ensure last message is not hidden behind input
       }}>
         {renderContent()}
       </Box>

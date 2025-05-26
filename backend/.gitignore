@@ -1,0 +1,10 @@
+.env
+venv/
+clean_env/
+.venv
+full_requirements.txt
+uploaded_pdfs/*
+!uploaded_pdfs/.gitkeep
+indexes/*
+!indexes/.gitkeep
+/frontend/

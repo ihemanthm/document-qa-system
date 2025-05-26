@@ -14,7 +14,8 @@ export default function Home() {
     currentFile, 
     setCurrentActiveFile,
     sessions,
-    addSession
+    addSession,
+    updateSessions
   } = useAuth();
   
   const [conversations, setConversations] = useState([]);
@@ -104,7 +105,9 @@ export default function Home() {
         setMessages([]);
         setCurrentActiveFile(null);
       }
-      sessions.filter(s => s.session_id === conversationId).delete();
+      const newSessions = sessions.filter(s => s.session_id !== conversationId);
+      console.log(newSessions)
+      updateSessions(newSessions)
       
       showSnackbar('Conversation deleted', 'success');
     } catch (error) {
