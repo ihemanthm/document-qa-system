@@ -2,7 +2,16 @@ import { useAuth } from "@/context/AuthContext";
 import { FaUserCircle, FaUpload, FaPaperPlane, FaFilePdf } from "react-icons/fa";
 import { PiSparkleFill } from "react-icons/pi";
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Box, IconButton, TextField, CircularProgress, Typography, Button, Tooltip, keyframes } from '@mui/material';
+import { 
+  Box, 
+  IconButton, 
+  TextField, 
+  CircularProgress, 
+  Typography, 
+  Button, 
+  Tooltip, 
+  keyframes 
+} from '@mui/material';
 import { chatApi } from '@/services/api';
 
 // Animation for typing indicator
@@ -52,49 +61,63 @@ const TypingIndicator = () => (
 export default function ChatWindow({ 
   onNewMessage,
   currentConversationId,
-  onNewConversation
+  onNewConversation,
+  onFileUploaded
 }) {
-  console.log("current Conversation ID:",currentConversationId)
-  const { user, showSnackbar, setCurrentActiveFile, currentFile, addSession } = useAuth();
+  const { 
+    user, 
+    showSnackbar, 
+    setCurrentActiveFile, 
+    currentFile, 
+    addSession 
+  } = useAuth();
+  
   const [input, setInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState([]);
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [isTyping, setIsTyping] = useState(false);
+  
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
-  const [isTyping, setIsTyping] = useState(false);
+  const inputRef = useRef(null);
 
   // Load conversations when conversationId changes
   useEffect(() => {
     const loadConversation = async () => {
-      if (!currentConversationId) {
+      if (currentConversationId) {
+        try {
+          setIsLoading(true);
+          const response = await chatApi.getConversation(currentConversationId);
+          console.log('Loaded conversation:', response);
+          
+          // Format messages properly
+          const formattedMessages = response.map(msg => ({
+            id: msg.id,
+            content: msg.content,
+            sender: msg.role === 'user' ? 'user' : 'assistant',
+            timestamp: msg.timestamp
+          }));
+          
+          setMessages(formattedMessages);
+        } catch (error) {
+          console.error('Error loading conversation:', error);
+          showSnackbar('Failed to load conversation', 'error');
+          setMessages([]);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // Clear messages and reset state for new conversation
         setMessages([]);
-        return;
-      }
-      
-      setIsLoading(true);
-      try {
-        const response = await chatApi.getConversation(currentConversationId);
-        const formattedMessages = response.map(msg => ({
-          id: msg.id,
-          content: msg.content,
-          sender: msg.role === 'user' ? 'user' : 'assistant',
-          timestamp: msg.timestamp
-        }));
-        setMessages(formattedMessages);
-      } catch (error) {
-        console.error('Failed to load conversation:', error);
-        showSnackbar('Failed to load conversation history', 'error');
-        setMessages([]);
-      } finally {
-        setIsLoading(false);
+        setUploadedFile(null);
       }
     };
 
     loadConversation();
-  }, [currentConversationId]);
+  }, [currentConversationId, showSnackbar]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -102,8 +125,13 @@ export default function ChatWindow({
   }, [isTyping]);
 
   // Handle file upload
-  const handleFileUpload = async (file) => {
+  const handleFileUpload = useCallback(async (file) => {
     if (!file) return;
+    
+    if (!user) {
+      showSnackbar('Please sign in to upload files', 'warning');
+      return;
+    }
     
     setIsUploading(true);
     try {
@@ -132,51 +160,78 @@ export default function ChatWindow({
         title: file.name
       });
       
+      // Notify parent component about file upload
+      if (onFileUploaded) {
+        onFileUploaded({
+          session_id: response.session_id,
+          created_at: response.created_at,
+          document_id: response.document.id,
+          filename: file.name,
+          file_url: response.document.file_url
+        });
+      }
+      
       showSnackbar('File uploaded successfully!', 'success');
+      
+      // Focus the input after successful upload
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     } catch (error) {
       console.error('Upload failed:', error);
-      showSnackbar('Failed to upload file', 'error');
+      const errorMessage = error.response?.data?.detail || 'Failed to upload file';
+      showSnackbar(errorMessage, 'error');
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [user, showSnackbar, setCurrentActiveFile, addSession]);
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = useCallback(async (e) => {
     e.preventDefault();
-    if (!input.trim() || !currentConversationId) return;
     
+    if (!user) {
+      showSnackbar('Please sign in to send messages', 'warning');
+      return;
+    }
+    
+    if (!input.trim() || isSending || !(currentFile || uploadedFile)) {
+      return;
+    }
+
     const userMessage = {
-      id: `user-${Date.now()}`,
-      content: input,
+      id: Date.now(),
+      content: input.trim(),
       sender: 'user',
       timestamp: new Date().toISOString(),
     };
 
-    // Optimistically update UI with user message
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsSending(true);
     setIsTyping(true);
 
     try {
-      const response = await chatApi.askQuestion(currentConversationId, input);
+      const sessionId = currentConversationId || uploadedFile?.id;
+      const response = await chatApi.askQuestion(sessionId, input.trim());
       
-      const botMessage = {
-        id: `assistant-${Date.now()}`,
+      const assistantMessage = {
+        id: Date.now() + 1,
         content: response.answer,
         sender: 'assistant',
         timestamp: new Date().toISOString(),
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [...prev, assistantMessage]);
+      onNewMessage(input.trim());
     } catch (error) {
-      console.error('Error sending message:', error);
-      showSnackbar('Failed to send message', 'error');
+      console.error('Failed to send message:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to send message';
+      showSnackbar(errorMessage, 'error');
     } finally {
       setIsSending(false);
       setIsTyping(false);
     }
-  };
+  }, [input, isSending, currentFile, uploadedFile, currentConversationId, user, showSnackbar, onNewMessage]);
 
   // Render message component
   const renderMessage = (message) => (
@@ -236,7 +291,8 @@ export default function ChatWindow({
       );
     }
 
-    if (!uploadedFile && !currentFile) {
+    // Show upload UI only when starting a new conversation (no conversation ID and no file)
+    if (!uploadedFile && !currentFile && !currentConversationId) {
       return (
         <Box sx={{ 
           display: 'flex', 
@@ -287,9 +343,7 @@ export default function ChatWindow({
       display: 'flex', 
       flexDirection: 'column', 
       height: '100%',
-      position: 'relative',
       overflow: 'hidden',
-      pt: 8 // Add padding to account for the header (assuming header height is 64px)
     }}>
       {/* Main content */}
       <Box sx={{ 
@@ -304,16 +358,10 @@ export default function ChatWindow({
       {/* Input area - fixed at bottom */}
       <Box sx={{ 
         p: 2, 
-        pt: 1,
-        pb: 3, 
         borderTop: '1px solid', 
         borderColor: 'divider',
         backgroundColor: 'background.paper',
-        position: 'sticky',
-        bottom: 0, 
-        left: 0,
-        right: 0,
-        zIndex: 10,
+        flexShrink: 0,
       }}>
         <form onSubmit={handleSendMessage}>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -325,12 +373,19 @@ export default function ChatWindow({
               style={{ display: 'none' }}
             />
             <TextField
+              inputRef={inputRef}
               fullWidth
               variant="outlined"
               placeholder={user ? "Ask a question about the document..." : "Please sign in to chat"}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={!user || !(currentFile || uploadedFile) || isSending || isLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e);
+                }
+              }}
               sx={{ 
                 '& .MuiOutlinedInput-root': { 
                   borderRadius: 4,

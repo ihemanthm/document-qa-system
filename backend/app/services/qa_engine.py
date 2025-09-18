@@ -15,14 +15,22 @@ gemini_api_key = os.getenv("GEMINI_API_KEY")
 if not gemini_api_key:
     raise ValueError("GEMINI_API_KEY not found in environment.")
 
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-1.5-flash")
+# Use the canonical Google model naming with the required prefix for embeddings
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "models/text-embedding-004")
+
+# Normalize embedding model to ensure it uses the expected 'models/' prefix
+if not EMBEDDING_MODEL.startswith("models/"):
+    EMBEDDING_MODEL = f"models/{EMBEDDING_MODEL}"
+
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
+    model=LLM_MODEL,
     google_api_key=gemini_api_key,
     temperature=0.1
 )
 
 embedding = GoogleGenerativeAIEmbeddings(
-    model="models/embedding-001",
+    model=EMBEDDING_MODEL,
     google_api_key=gemini_api_key
 )
 

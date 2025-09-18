@@ -8,3 +8,6 @@ uploaded_pdfs/*
 indexes/*
 !indexes/.gitkeep
 /frontend/
+alembic
+/app/__pycache__/
+**/__pycache__

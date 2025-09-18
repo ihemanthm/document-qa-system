@@ -70,9 +70,13 @@ export default function Home() {
 
   // Handle conversation selection
   const handleSelectConversation = useCallback((conversationId) => {
+    console.log('Selecting conversation:', conversationId);
     setCurrentConversationId(conversationId);
+    
     // Find the selected conversation and set current file
     const selectedConversation = sessions.find(s => s.session_id === conversationId);
+    console.log('Selected conversation:', selectedConversation);
+    
     if (selectedConversation?.document) {
       setCurrentActiveFile({
         fileName: selectedConversation.document.filename,
@@ -80,7 +84,10 @@ export default function Home() {
         sessionId: selectedConversation.session_id,
         documentId: selectedConversation.document.id
       });
+    } else {
+      setCurrentActiveFile(null);
     }
+    
     setMessages([]); // Clear messages when switching conversations
   }, [sessions, setCurrentActiveFile]);
 

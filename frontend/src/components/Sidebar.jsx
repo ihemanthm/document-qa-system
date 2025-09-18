@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { chatApi } from '@/services/api';
 import { 
   Box, 
   Typography, 
@@ -19,7 +20,8 @@ import {
   Add as AddIcon, 
   Delete as DeleteIcon,
   Logout as LogoutIcon,
-  Article as DocumentIcon
+  Article as DocumentIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import GoogleAuth from './GoogleAuth';
 
@@ -39,16 +41,18 @@ const Sidebar = ({
   currentConversationId,
   onDeleteConversation
 }) => {
-  const { user, sessions, logout } = useAuth();
+  const { user, sessions, logout, showSnackbar } = useAuth();
   const [deletingId, setDeletingId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const handleNewChat = useCallback(() => {
     if (!user) return;
     onNewConversation?.();
   }, [onNewConversation, user]);
 
-  const handleSelect = useCallback((sessionId, document) => {
-    onSelectConversation?.(sessionId, document);
+  const handleSelect = useCallback((sessionId) => {
+    console.log('Sidebar handleSelect called with:', sessionId);
+    onSelectConversation?.(sessionId);
   }, [onSelectConversation]);
 
   const handleDelete = useCallback(async (e, sessionId) => {
@@ -66,12 +70,57 @@ const Sidebar = ({
     }
   }, [onDeleteConversation]);
 
+  const handleDownloadPDF = useCallback(async (e, sessionId, filename) => {
+    e.stopPropagation();
+    
+    try {
+      setDownloadingId(sessionId);
+      showSnackbar('Generating PDF...', 'info');
+      
+      // Download PDF from backend
+      const pdfBlob = await chatApi.downloadConversationPDF(sessionId);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `conversation_${sessionId}_${filename || 'document'}.pdf`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showSnackbar('PDF downloaded successfully!', 'success');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      showSnackbar('Failed to download PDF', 'error');
+    } finally {
+      setDownloadingId(null);
+    }
+  }, [showSnackbar]);
+
   // Format conversation title from session data
   const formatTitle = (session) => {
     if (session.document?.filename) {
       return session.document.filename.split('.').slice(0, -1).join('.');
     }
     return `Conversation ${new Date(session.created_at).toLocaleDateString()}`;
+  };
+
+  // Format time for display
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   return (
@@ -133,27 +182,47 @@ const Sidebar = ({
                 key={session.session_id}
                 disablePadding
                 secondaryAction={
-                  <Tooltip title="Delete conversation">
-                    <IconButton
-                      edge="end"
-                      onClick={(e) => handleDelete(e, session.session_id)}
-                      disabled={deletingId === session.session_id}
-                      size="small"
-                      sx={{
-                        visibility: currentConversationId === session.session_id ? 'visible' : 'hidden',
-                        '&:hover': { color: 'error.main' },
-                      }}
-                    >
-                      {deletingId === session.session_id ? (
-                        <CircularProgress size={20} />
-                      ) : (
-                        <DeleteIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </Tooltip>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    gap: 0.5,
+                    visibility: currentConversationId === session.session_id ? 'visible' : 'hidden'
+                  }}>
+                    <Tooltip title="Download conversation PDF">
+                      <IconButton
+                        onClick={(e) => handleDownloadPDF(e, session.session_id, session.document?.filename)}
+                        disabled={downloadingId === session.session_id}
+                        size="small"
+                        sx={{
+                          '&:hover': { color: 'primary.main' },
+                        }}
+                      >
+                        {downloadingId === session.session_id ? (
+                          <CircularProgress size={16} />
+                        ) : (
+                          <DownloadIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete conversation">
+                      <IconButton
+                        onClick={(e) => handleDelete(e, session.session_id)}
+                        disabled={deletingId === session.session_id}
+                        size="small"
+                        sx={{
+                          '&:hover': { color: 'error.main' },
+                        }}
+                      >
+                        {deletingId === session.session_id ? (
+                          <CircularProgress size={20} />
+                        ) : (
+                          <DeleteIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                 }
                 selected={currentConversationId === session.session_id}
-                onClick={(e) => handleSelect(e, session.session_id)}
+                onClick={() => handleSelect(session.session_id)}
               >
                 <ListItemButton>
                   <ListItemIcon sx={{ minWidth: 36 }}>
@@ -176,7 +245,7 @@ const Sidebar = ({
                         color="text.secondary"
                         noWrap
                       >
-                        {new Date(session.created_at).toLocaleDateString()}
+                        {formatTime(session.created_at)}
                       </Typography>
                     }
                   />

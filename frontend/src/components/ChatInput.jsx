@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Paper, IconButton, InputBase, Box } from '@mui/material';
+import { Paper, IconButton, InputBase, Box, Tooltip } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 import { useAuth } from '@/context/AuthContext';
 
@@ -68,14 +68,18 @@ export default function ChatInput({ onSend, disabled }) {
           maxRows={4}
           inputProps={{ 'aria-label': 'ask a question' }}
         />
-        <IconButton 
-          type="submit" 
-          color="primary" 
-          sx={{ p: '10px' }}
-          disabled={!user || !message.trim() || disabled}
-        >
-          <SendIcon />
-        </IconButton>
+        <Tooltip title={!user ? "Sign in to send messages" : !message.trim() ? "Type a message" : "Send message"}>
+          <span>
+            <IconButton 
+              type="submit" 
+              color="primary" 
+              sx={{ p: '10px' }}
+              disabled={!user || !message.trim() || disabled}
+            >
+              <SendIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
       </Paper>
     </Box>
   );

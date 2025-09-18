@@ -133,6 +133,19 @@ export const chatApi = {
       throw error;
     }
   },
+
+  // Download conversation as PDF
+  downloadConversationPDF: async (sessionId) => {
+    try {
+      const response = await api.get(`/pdf/conversation/${sessionId}`, {
+        responseType: 'blob',
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      throw error;
+    }
+  },
 };
 
 export default api;
